@@ -27,16 +27,20 @@ import os
 import dj_database_url
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = 'RENDER' not in os.environ
+DEBUG = 'PROD' not in os.environ
 
 ALLOWED_HOSTS = []
-RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
-if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+# Check both plural (standard) and singular (common typo in deployment UIs)
+host_env = os.environ.get('ALLOWED_HOSTS') or os.environ.get('ALLOWED_HOST')
+if host_env:
+    ALLOWED_HOSTS.extend(host_env.split(','))
 
-# CSRF Trusted Origins for Render
-if RENDER_EXTERNAL_HOSTNAME:
-    CSRF_TRUSTED_ORIGINS = [f'https://{RENDER_EXTERNAL_HOSTNAME}']
+# CSRF Trusted Origins
+CSRF_TRUSTED_ORIGINS = []
+if host_env:
+    for host in host_env.split(','):
+        if host.strip():
+            CSRF_TRUSTED_ORIGINS.append(f'https://{host.strip()}')
 
 
 # Application definition
@@ -136,8 +140,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 if not DEBUG:
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # CORS Settings
